@@ -1,0 +1,21 @@
+VB, Assembler & Resource files by Robert Rayment
+
+Only those interested in this topic should download these files.
+If you have been following some of the VB+assembler progs
+I've been putting on PSC you may have noticed that the assembly
+part is either in a bin file (com in earlier examples) or in a DLL.
+The disadvantage of both these is that they need to be in the same
+folder as the prog.  This is OK for testing but is a nuisance for an
+EXE.  Also we're usually talking about small bits of assembler to
+beef up parts of VB (Heineken approach).  The DLL may be
+specific and so is not appropriate to register.  Assembled snippets
+are often much faster than VB.  Also, once you've got over the
+red-tape and peculiarities of the particular assembler, its often
+ _easier_ (this may be a secret so don't tell anyone)
+A DLL has a minimum size of 16KB and a bin file 4KB (cluster size).
+What this submission shows is how to put your assembler code into a
+resource file which gets incorporated into an EXE freeing it from
+associations and only taking a few more bytes than the bin file size.
+
+A 32-bit Hex/Long integer/Binary converter is developed to demonstrate
+these techniques. The zip file is ~11KB.

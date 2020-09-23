@@ -1,0 +1,68 @@
+HLB   by  Robert Rayment   17 Dec 00
+
+Assembler & Resource files
+
+
+Mixed VB Assembler programming can be done in a number of ways.
+The simplest is to create a binary file containing the code bytes
+load that into a byte array and use the API CallWindowProc.  
+
+There are several examples on PSC where bin or com files have been
+created using assemblers A386 and NASM (Netwide assembler).  A386 is 
+not free but NASM is and can be obtained from <cryogen.com/Nasm>.
+
+Instead of a bin file a DLL can be made (see on PSC Sixteen million 
+colors, Creating & Testing DLL with NASM and Alpha24 by Non-Linear 
+Solutions).
+
+The disadvantage of both these methods is that the DLL or the bin has
+to be in the same folder as the program.  This is OK during testing
+but is a nuisance for an EXE.  Also the minimum size of a DLL is 16KB
+and 4KB for a bin file (cluster size).  The DLL could be registered
+but as we are talking about small bits of machine code to beef up
+parts of a particular VB program (Heineken approach) its not appropriate 
+to register.
+
+An alternative is to store the bin file in a resource file.  When compiled
+this becomes part of the EXE so that it is freed from the associated
+files.  This submission shows how to do this.  You need to read all
+the info in the HBL.frm.
+
+The propram contains to bits of VB code one to load from a bin file
+and one to load from a resource.  You use the bin load when testing
+and the res load when everything works.  You dont need both these
+bits of code together.
+
+There is another method of incorporation which is to use a set of VB 
+statements that put the opcodes in one at a time into a byte array.
+This is only practicable for very small bits of code.  One could write
+a program to develop these VB statements but its clumsy.
+
+'--------------------------------
+'How to create resource .res file
+'--------------------------------
+
+'Click Add-Ins / Add In Manager
+'Select (Double click) Resource Editor /Click OK
+'Click Tools & then Resource Editor
+'Click Add Custom Resource (Tool Tip Text)
+'From file menu select binary file, in this case HBL.bin
+'Note the number along side the resultant list, 101 in this case
+'Close resource editor
+'The folder will now contain a .res file
+
+'With this prog the resource file is done and it can be compiled
+'to an EXE for you to test its independence!  The EXE is NOT
+'included in the zip file.
+
+'goto '***  in Form.Load to see how to test and to extract the binary
+'           assembler data
+
+'--------------------------------
+'--------------------------------
+
+This particular program is a 32-bit Hex Long integer Binary Converter and
+is meant to demonstate assembly with NASM and the use of resource
+files.  There are lots of Converters around though this one does not produce
+an overflow like a few others do.  It will give the full 32-bit conversions.
+
