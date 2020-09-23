@@ -1,0 +1,183 @@
+     1                                  ;HLB.asm
+     2                                  
+     3                                  ;HEX LONG BINARY CONVERSION by Robert Rayment
+     4                                  
+     5                                  ;NB Assumes all 8 hex bytes filled with 48("0") to 70("F")
+     6                                  ;   and all 32 bin bytes filled with 48("0") or 49("1")
+     7                                  
+     8                                  ; VB
+     9                                  
+    10                                  ;Select Case Index
+    11                                  ;Case 0   'Hex Input
+    12                                  ;   Hex2Long2Bin
+    13                                  ;Case 1   'Long Input
+    14                                  ;   Long2Bin2Hex
+    15                                  ;Case 2   'Bin Input
+    16                                  ;   Bin2Hex2Long
+    17                                  ;End Select
+    18                                  
+    19                                  ; For calling machine code
+    20                                  ; res = CallWindowProc(lpMCode,InpDec, lpHex, lpBin,  OpType)
+    21                                  ;								8		12		16		20							
+    22                                  ; lpMCode    pointer to machine code
+    23                                  ; InpDec     long decimal number input
+    24                                  ; lpHex      pointer to HexBytes(1)  input & output
+    25                                  ; lpBin      pointer to BinBytes(1)  input & output
+    26                                  ; OpType     long number 1,2 or 4 for respec. Hex, Dec & Bin input
+    27                                  ; res        long decimal output (from reg EAX)
+    28                                  
+    29                                  
+    30                                  [bits 32]
+    31                                  
+    32 00000000 55                      	push ebp
+    33 00000001 89E5                    	mov ebp,esp
+    34 00000003 57                      	push edi
+    35 00000004 56                      	push esi
+    36 00000005 53                      	push ebx
+    37                                  
+    38                                  
+    39 00000006 8B4514                  	mov eax,[ebp+20]	;Get OpType
+    40 00000009 D1D8                    	rcr eax,1
+    41 0000000B 7311                    	jnc TestOp2
+    42                                  	
+    43                                  	;OPERATION 1  HEX INPUT
+    44                                  
+    45 0000000D E839000000              	CALL Hex2Long		;Long result in eax & edx
+    46 00000012 50                      	push eax
+    47 00000013 E85C000000              	CALL Long2Bin		;In: Long in edx
+    48 00000018 58                      	pop eax				;Long result in eax
+    49                                  	
+    50 00000019 E924000000              	jmp GETOUT
+    51                                  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    52                                  TestOp2:
+    53                                  
+    54 0000001E D1D8                    	rcr eax,1
+    55 00000020 7312                    	jnc TestOp3
+    56                                  
+    57                                  	;OPERATION 2  LONG INTEGER INPUT
+    58                                  
+    59 00000022 8B5508                  	mov edx,[ebp+8]		;Get decimal input
+    60                                  	
+    61 00000025 E84A000000              	CALL Long2Bin
+    62 0000002A E866000000              	CALL Bin2Hex
+    63                                  	
+    64 0000002F E90E000000              	jmp GETOUT
+    65                                  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    66                                  TestOp3:
+    67                                  
+    68 00000034 D1D8                    	rcr eax,1
+    69 00000036 730A                    	jnc GETOUT			;Error? ignore
+    70                                  	
+    71                                  	;OPERATION 3  BINARY INPUT
+    72                                  
+    73 00000038 E858000000              	CALL Bin2Hex	
+    74 0000003D E884000000              	CALL Bin2Long		;Long result in eax
+    75                                  	
+    76                                  	;jmp GETOUT
+    77                                  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    78                                  
+    79                                  GETOUT:
+    80 00000042 5B                      pop ebx
+    81 00000043 5E                      pop esi
+    82 00000044 5F                      pop edi
+    83 00000045 89EC                    mov esp,ebp
+    84 00000047 5D                      pop ebp
+    85 00000048 C21000                  ret 16
+    86                                  ;##########################################################
+    87                                  Hex2Long:
+    88                                  
+    89                                  	;CONVERT UP TO 8 ASCII HEX BYTES("0" to "F") TO LONG INTEGER  ;;;;;
+    90                                  
+    91 0000004B 8B5D0C                  	mov ebx,[ebp+12]	;Pointer to HexBytes(1) 8 bytes long
+    92 0000004E 31D2                    	xor edx,edx			;zeroed before entering bytes, summer
+    93 00000050 B908000000              	mov ecx,8
+    94                                  getchar:
+    95 00000055 8A440BFF                	mov al,[ebx+ecx-1]	;start at HexBytes(8)
+    96                                  
+    97 00000059 3C41                    	cmp al,65			;& work down to 1st
+    98 0000005B 7D07                    	jge A2F
+    99                                  			
+   100 0000005D 240F                    	and al,0Fh			;al 48-59 ("0"-"9") -> 0-9
+   101 0000005F E904000000              	jmp AHEX
+   102                                  A2F:
+   103 00000064 240F                    	and al,0Fh			;al 65-70 ("A"-"F") -> 1-6
+   104 00000066 0409                    	add al,9			;al 10-15
+   105                                  AHEX:
+   106 00000068 C1E204                  	shl edx,4			;shift up edx 4 places to
+   107 0000006B 08C2                    	or dl,al			;allow in 4 bits from al to dl
+   108 0000006D 6649                    	dec cx
+   109 0000006F 75E4                    	jnz getchar
+   110                                  
+   111 00000071 89D0                    	mov eax,edx			;long result in eax & edx
+   112 00000073 C3                      ret
+   113                                  ;=========================================================
+   114                                  Long2Bin:	;In; Long in edx
+   115                                  	
+   116                                  	;TAKE LONG INTEGER INPUT & PUT ASCII BITS TO BinBytes(32)
+   117                                  
+   118 00000074 8B5D10                  	mov ebx,[ebp+16]	;Pointer to BinBytes(1) 32 bytes long
+   119 00000077 B030                    	mov al,48			;"0"
+   120 00000079 B431                    	mov ah,49			;"1"
+   121 0000007B B920000000              	mov ecx,32
+   122                                  GetBit:
+   123 00000080 D1D2                    	rcl edx,1			;rotate to carry, hi-bit 1st
+   124 00000082 7209                    	jc OneBit
+   125 00000084 88440BFF                	mov [ebx+ecx-1],al	;"0"
+   126 00000088 E904000000              	jmp DecrBit
+   127                                  OneBit:
+   128 0000008D 88640BFF                	mov [ebx+ecx-1],ah	;"1"
+   129                                  DecrBit:
+   130 00000091 49                      	dec ecx
+   131 00000092 75EC                    	jnz GetBit
+   132 00000094 C3                      ret
+   133                                  ;=========================================================
+   134                                  Bin2Hex	:
+   135                                  
+   136                                  	;CONVERT 32 ASCII BINARY BYTES("0" & "1") TO 8 HEX BYTES  ;;;;;
+   137                                  
+   138 00000095 8B7510                  	mov esi,[ebp+16]	;Pointer to BinBytes(1) 32 bytes long
+   139 00000098 8B7D0C                  	mov edi,[ebp+12]	;Pointer to HexBytes(1) 8 bytes long
+   140 0000009B 81C707000000            	add edi,7			;point to HexBytes(8)
+   141 000000A1 B210                    	mov dl,10h			;bit4 set for counter bits0-3 zero
+   142 000000A3 B920000000              	mov ecx,32
+   143                                  GetABit:
+   144 000000A8 8A440EFF                	mov al,[esi+ecx-1]	;Get ASCII "0" or "1"
+   145                                  						;al 48-49  bit0 = 0 or 1
+   146 000000AC D0D8                    	rcr al,1			;get bit0 to carry
+   147 000000AE D0D2                    	rcl dl,1			;build 4 bit hex in dl
+   148 000000B0 7310                    	jnc NextBit
+   149                                  		;Convert dl 0-15 to 48-57 ("0"-"9")or 65 to 70 ("A"-"F")
+   150 000000B2 80C230                  		add dl,48		;48-57(for 0-9)58-63 (for 10-15) 
+   151 000000B5 80FA39                  		cmp dl,57
+   152 000000B8 7603                    		jbe	storehex
+   153 000000BA 80C207                  		add dl,7		;58+7=65
+   154                                  	storehex:
+   155 000000BD 8817                    		mov [edi],dl	;hex to HexByte()
+   156 000000BF 4F                      		dec edi			;To store next hex
+   157 000000C0 B210                    		mov dl,10h		;bit4 set for counter bits0-3 zero
+   158                                  NextBit:
+   159 000000C2 49                      	dec ecx
+   160 000000C3 75E3                    	jnz GetABit
+   161 000000C5 C3                      ret
+   162                                  ;=========================================================
+   163                                  Bin2Long:
+   164                                  	
+   165                                  	;CONVERT 32 ASCII BINARY BYTES("0" & "1") TO LONG INTEGER  ;;;;;
+   166                                  
+   167 000000C6 8B7510                  	mov esi,[ebp+16]	;Pointer to BinBytes(1) 32 bytes long
+   168 000000C9 31D2                    	xor edx,edx			;zeroed before entering bytes, summer
+   169 000000CB B920000000              	mov ecx,32
+   170                                  GetABit2:
+   171 000000D0 8A440EFF                	mov al,[esi+ecx-1]	;Get ASCII "0" or "1"
+   172                                  						;al 48-49  bit0 = 0 or 1
+   173 000000D4 D0D8                    	rcr al,1			;get bit to carry
+   174 000000D6 D1D2                    	rcl edx,1			;build long in edx
+   175                                  
+   176 000000D8 49                      	dec ecx
+   177 000000D9 75F5                    	jnz GetABit2
+   178                                  	
+   179 000000DB 89D0                    	mov eax,edx			;long result in eax & edx
+   180 000000DD C3                      ret
+   181                                  ;=========================================================
+   182                                  
+   183                                  ENDS
